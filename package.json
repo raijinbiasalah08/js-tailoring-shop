@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "node dev.js",
+    "start:backend": "npm --prefix backend run start",
+    "start": "node index.js",
+    "build": "npm --prefix js-tailoring-shop run build"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.3.0"
+  }
+}

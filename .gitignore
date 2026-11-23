@@ -1,0 +1,5 @@
+/node_modules/
+/backend/node_modules/
+/js-tailoring-shop/node_modules/
+/public/
+/.vercel/
