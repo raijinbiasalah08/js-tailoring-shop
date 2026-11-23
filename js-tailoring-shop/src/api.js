@@ -1,7 +1,7 @@
 const configuredBackendUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 
-// Local Vite uses its /api proxy. Production can either serve /api on the
-// same origin or set VITE_API_BASE_URL to the separately hosted backend.
+// Local Vite uses its /api proxy; production uses the Render URL from
+// .env.production or Vercel's VITE_API_BASE_URL setting.
 const normalizedBackendUrl = configuredBackendUrl?.replace(/\/+$/, "");
 
 export const API = normalizedBackendUrl

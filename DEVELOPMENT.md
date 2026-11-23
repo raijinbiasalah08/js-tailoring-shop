@@ -16,7 +16,12 @@ unless the value already ends with `/api`.
 
 ## Deploying to Vercel
 
-Set the Vercel project's Root Directory to the repository root. The root
-`index.js` starts the Express backend, and the build writes the Vite frontend
-to the root `public` directory for Vercel to serve. The frontend uses the
-same-origin `/api` path, so no `VITE_API_BASE_URL` is needed for this setup.
+The frontend is deployed on Vercel and the Express API runs on Render. Set the
+Vercel project's Root Directory to `js-tailoring-shop`. Its local `vercel.json`
+uses commands relative to that directory, and `.env.production` points the
+frontend at `https://js-tailoring-shop-api.onrender.com`.
+
+The API client appends `/api` to that URL, so account and reservation requests
+go to the Render service. If the Render service URL changes, update
+`VITE_API_BASE_URL` in `.env.production` and in Vercel's Production environment
+variables, then redeploy.

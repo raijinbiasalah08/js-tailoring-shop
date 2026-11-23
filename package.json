@@ -3,7 +3,6 @@
   "scripts": {
     "dev": "node dev.js",
     "start:backend": "npm --prefix backend run start",
-    "start": "node index.js",
     "build": "npm --prefix js-tailoring-shop run build"
   },
   "dependencies": {
