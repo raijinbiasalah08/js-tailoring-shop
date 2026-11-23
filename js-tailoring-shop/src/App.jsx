@@ -212,17 +212,22 @@ function App() {
       const isAdmin = ADMIN_EMAILS.includes(gUser.email);
 
       // i-save/i-update ang user info sa Firestore "users" collection
-      await setDoc(
-        doc(db, "users", gUser.uid),
-        {
-          displayName: gUser.displayName,
-          email: gUser.email,
-          photoURL: gUser.photoURL,
-          role: isAdmin ? "admin" : "customer",
-          createdAt: serverTimestamp(),
-        },
-        { merge: true } // para hindi ma-overwrite ang existing data pag nag-login ulit
-      );
+      try {
+        await setDoc(
+          doc(db, "users", gUser.uid),
+          {
+            displayName: gUser.displayName,
+            email: gUser.email,
+            photoURL: gUser.photoURL,
+            role: isAdmin ? "admin" : "customer",
+            createdAt: serverTimestamp(),
+          },
+          { merge: true } // para hindi ma-overwrite ang existing data pag nag-login ulit
+        );
+      } catch (profileError) {
+        // Firestore profile persistence is optional for signing in to this app.
+        console.error("Google sign-in succeeded, but saving the user profile failed:", profileError);
+      }
 
       setCurrentUser({
         id: gUser.uid,
@@ -237,7 +242,17 @@ function App() {
       }
     } catch (error) {
       console.error("Google login failed:", error);
-      setLoginError("Hindi nagawa ang Google sign-in. Subukan ulit.");
+      const errorMessages = {
+        "auth/unauthorized-domain": `Add ${window.location.hostname} to Firebase Authentication's Authorized domains.`,
+        "auth/operation-not-allowed": "Enable Google as a sign-in provider in Firebase Authentication.",
+        "auth/popup-blocked": "Allow pop-ups for this site, then try Google sign-in again.",
+        "auth/popup-closed-by-user": "The Google sign-in window was closed before sign-in finished.",
+      };
+      const code = error?.code;
+      setLoginError(
+        errorMessages[code] ||
+          `Google sign-in failed${code ? ` (${code})` : ". Check the browser console for details."}`
+      );
     }
   };
 
