@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API } from "../api";
 
 export default function ProductsTable() {
   const [products, setProducts] = useState([]);
@@ -13,7 +14,7 @@ export default function ProductsTable() {
   const [editImage, seteditImage] = useState("");
   const [isModalOpen, setisModalOpen] = useState(false);
 
-  const product_url = "http://localhost:5000/api/products";
+  const product_url = `${API}/products`;
 
   useEffect(() => {
     fetch(product_url)

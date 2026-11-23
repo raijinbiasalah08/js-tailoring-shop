@@ -6,6 +6,7 @@ import CustomerPage from "./pages/CustomerPage";
 import AdminPage from "./pages/AdminPage";
 import ProductsTable from "./components/ProductsTable";
 import initialServices from "./data/serviceData";
+import { API } from "./api";
 
 // FIREBASE
 import { auth, googleProvider, db } from "./firebase";
@@ -13,7 +14,6 @@ import { signInWithPopup } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const ADMIN_EMAILS = ["sherwinmarino06@gmail.com"];
-const API = "http://localhost:5000/api";
 
 function App() {
   // naka-save sa sessionStorage para hindi mawala kapag nag-type ng URL (reload)
@@ -59,8 +59,8 @@ function App() {
     const next = STATUS_STEPS[nextIndex];
 
     try {
-      const res = await fetch(`${API}/reservations/${id}/status`, {
-        method: "PUT",
+      const res = await fetch(`${API}/reservations/${id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: next }),
       });

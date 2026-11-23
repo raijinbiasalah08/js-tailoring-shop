@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { API } from "../api";
 
-const PRODUCT_URL = "http://localhost:5000/api/products";
+const PRODUCT_URL = `${API}/products`;
 const emptyForm = { name: "", price: "", image: "" };
 
 export default function AdminPage({
@@ -26,7 +27,7 @@ export default function AdminPage({
         setProducts(data);
         setProductError("");
       })
-      .catch(() => setProductError("Hindi makonekta sa backend (port 5000)."));
+      .catch(() => setProductError("Hindi makonekta sa backend. Suriin ang koneksyon at subukang muli."));
   };
 
   useEffect(() => {
@@ -95,7 +96,7 @@ export default function AdminPage({
       setShowModal(false);
       loadProducts();
     } catch (err) {
-      setFormError("Hindi makonekta sa backend (port 5000).");
+      setFormError("Hindi makonekta sa backend. Suriin ang koneksyon at subukang muli.");
     }
   }
 
