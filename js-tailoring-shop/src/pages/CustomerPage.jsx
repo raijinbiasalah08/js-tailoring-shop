@@ -25,6 +25,8 @@ function CustomerPage({
     setPage("login");
   };
 
+  const orders = myReservations || [];
+
   return (
     <div className="app-shell">
       <nav className="topbar">
@@ -183,7 +185,7 @@ function CustomerPage({
           <section>
             <h2 className="section-title">Aking mga Reservation</h2>
 
-            {myReservations.length === 0 ? (
+            {orders.length === 0 ? (
               <p className="empty-state">Wala ka pang reservation.</p>
             ) : (
               <div className="reservation-table-wrap">
@@ -197,22 +199,25 @@ function CustomerPage({
                     </tr>
                   </thead>
                   <tbody>
-                    {myReservations.map((reservation) => (
-                      <tr key={reservation.id}>
-                        <td>{reservation.service}</td>
-                        <td className="cell-details">{reservation.details}</td>
-                        <td>{reservation.date}</td>
-                        <td>
-                          <span
-                            className={`status-badge status-${reservation.status
-                              .toLowerCase()
-                              .replace(" ", "-")}`}
-                          >
-                            {reservation.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {orders.map((reservation) => {
+                      const status = reservation.status || "Pending";
+                      return (
+                        <tr key={reservation.id}>
+                          <td>{reservation.service}</td>
+                          <td className="cell-details">{reservation.details}</td>
+                          <td>{reservation.date}</td>
+                          <td>
+                            <span
+                              className={`status-badge status-${status
+                                .toLowerCase()
+                                .replace(" ", "-")}`}
+                            >
+                              {status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

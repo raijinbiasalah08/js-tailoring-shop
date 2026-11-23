@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
 import LoginPage from "./pages/LoginPage";
 import CustomerPage from "./pages/CustomerPage";
 import AdminPage from "./pages/AdminPage";
+import ProductsTable from "./components/ProductsTable";
 import initialServices from "./data/serviceData";
 
 // FIREBASE
@@ -11,9 +13,17 @@ import { signInWithPopup } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const ADMIN_EMAILS = ["sherwinmarino06@gmail.com"];
+const API = "http://localhost:5000/api";
 
 function App() {
-  const [page, setPage] = useState("login");
+  // naka-save sa sessionStorage para hindi mawala kapag nag-type ng URL (reload)
+  const [adminLoggedIn, setAdminLoggedIn] = useState(
+    () => sessionStorage.getItem("isAdmin") === "true"
+  );
+  const [page, setPage] = useState(() =>
+    sessionStorage.getItem("isAdmin") === "true" ? "admin" : "login"
+  );
+
   const [loginType, setLoginType] = useState("customer");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -39,15 +49,29 @@ function App() {
 
   const STATUS_STEPS = ["Pending", "Ginagawa", "Tapos na"];
 
-  const advanceStatus = (id) => {
-    setReservations((prev) =>
-      prev.map((r) => {
-        if (r.id !== id) return r;
-        const nextIndex =
-          (STATUS_STEPS.indexOf(r.status) + 1) % STATUS_STEPS.length;
-        return { ...r, status: STATUS_STEPS[nextIndex] };
-      })
-    );
+  // Binabago ang status sa backend, tapos sa screen
+  const advanceStatus = async (id) => {
+    const current = reservations.find((r) => r.id === id);
+    if (!current) return;
+
+    const nextIndex =
+      (STATUS_STEPS.indexOf(current.status) + 1) % STATUS_STEPS.length;
+    const next = STATUS_STEPS[nextIndex];
+
+    try {
+      const res = await fetch(`${API}/reservations/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: next }),
+      });
+      if (res.ok) {
+        setReservations((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, status: next } : r))
+        );
+      }
+    } catch (err) {
+      console.error("Hindi nabago ang status:", err);
+    }
   };
 
   const pendingCount = reservations.filter((r) => r.status === "Pending").length;
@@ -90,17 +114,40 @@ function App() {
     return () => clearTimeout(t);
   }, [successMessage]);
 
+  // ADMIN: kunin ang lahat ng reservation, i-refresh kada 5 segundo
+  useEffect(() => {
+    if (page !== "admin") return;
+
+    const loadAll = () => {
+      fetch(`${API}/reservations`)
+        .then((res) => res.json())
+        .then((data) => setReservations(Array.isArray(data) ? data : []))
+        .catch((err) => console.error("Hindi nakuha ang reservations:", err));
+    };
+
+    loadAll();
+    const timer = setInterval(loadAll, 5000);
+    return () => clearInterval(timer);
+  }, [page]);
+
+  // admin login/logout helpers
+  const loginAsAdmin = () => {
+    sessionStorage.setItem("isAdmin", "true");
+    setAdminLoggedIn(true);
+    setPage("admin");
+  };
+
+  const logout = () => {
+    sessionStorage.removeItem("isAdmin");
+    setAdminLoggedIn(false);
+    setPage("login");
+  };
+
   const handleLogin = (e) => {
     e.preventDefault();
-    setLoginError("");
-
-    if (username === "Jeff" && password === "Dumango Ka") {
-      setPage("admin");
-      setUsername("");
-      setPassword("");
-    } else {
-      setLoginError("Wrong admin username or password. Subukan ulit.");
-    }
+    setLoginError(
+      "For admin access, sign in with the authorized Google account below."
+    );
   };
 
   const handleCustomerLogin = async (e) => {
@@ -108,7 +155,7 @@ function App() {
     setLoginError("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/login", {
+      const res = await fetch(`${API}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -134,7 +181,7 @@ function App() {
     setLoginError("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/register", {
+      const res = await fetch(`${API}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, username, password }),
@@ -183,19 +230,25 @@ function App() {
         email: gUser.email,
       });
 
-      setPage(isAdmin ? "admin" : "customer");
+      if (isAdmin) {
+        loginAsAdmin();
+      } else {
+        setPage("customer");
+      }
     } catch (error) {
       console.error("Google login failed:", error);
       setLoginError("Hindi nagawa ang Google sign-in. Subukan ulit.");
     }
   };
 
+  // CUSTOMER: kunin ang sariling reservation
   const fetchMyReservations = async () => {
     if (!currentUser) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/reservations/${currentUser.id}`);
+      const res = await fetch(`${API}/reservations/${currentUser.id}`);
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
-      setMyReservations(data);
+      setMyReservations(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Hindi nakuha ang reservations:", err);
     }
@@ -214,11 +267,13 @@ function App() {
     };
 
     try {
-      await fetch("http://localhost:5000/api/reservations", {
+      const res = await fetch(`${API}/reservations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newReservation),
       });
+
+      if (!res.ok) throw new Error("Hindi na-save");
 
       setSuccessMessage(
         `Nareserve na ang "${selectedService.name}". Tatawag kami sa number na binigay mo pag tapos na.`
@@ -232,8 +287,11 @@ function App() {
     }
   };
 
+  // Ang pangunahing page (login / customer / admin) sa "/"
+  let mainView = null;
+
   if (page === "login") {
-    return (
+    mainView = (
       <LoginPage
         loginType={loginType}
         setLoginType={setLoginType}
@@ -249,10 +307,8 @@ function App() {
         handleGoogleLogin={handleGoogleLogin}
       />
     );
-  }
-
-  if (page === "customer") {
-    return (
+  } else if (page === "customer") {
+    mainView = (
       <CustomerPage
         setPage={setPage}
         setCurrentUser={setCurrentUser}
@@ -268,12 +324,11 @@ function App() {
         fetchMyReservations={fetchMyReservations}
       />
     );
-  }
-
-  if (page === "admin") {
-    return (
+  } else if (page === "admin") {
+    mainView = (
       <AdminPage
         setPage={setPage}
+        onLogout={logout}
         adminView={adminView}
         setAdminView={setAdminView}
         pendingCount={pendingCount}
@@ -293,6 +348,20 @@ function App() {
       />
     );
   }
+
+  return (
+    <Routes>
+      <Route path="/" element={mainView} />
+
+      {/* /products: admin lang. Kapag hindi naka-login bilang admin, ibabalik sa login */}
+      <Route
+        path="/products"
+        element={adminLoggedIn ? <ProductsTable /> : <Navigate to="/" replace />}
+      />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
 export default App;
